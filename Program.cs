@@ -1,40 +1,77 @@
-using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
 using RealEstateAPI.Models;
+using RealEstateAPI.Repositories;
+using RealEstateAPI.Services;
+using Microsoft.EntityFrameworkCore;
+using DotNetEnv;
+using CloudinaryDotNet;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
 // Add services to the container
 builder.Services.AddControllers();
+
+// Configure Swagger for API documentation
+builder.Services.AddEndpointsApiExplorer(); // Enables API explorer for Swagger
+builder.Services.AddSwaggerGen(c =>
+{
+    // Add basic Swagger documentation
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Real Estate API",
+        Version = "v1",
+        Description = "An API for managing real estate clients, sellers, and properties.",
+        Contact = new OpenApiContact
+        {
+            Name = "Your Name",
+            Email = "your.email@example.com",
+            Url = new Uri("https://yourwebsite.com")
+        }
+    });
+
+    // You can add more customization here, e.g., XML comments for methods, authentication, etc.
+});
+
+// TODO Move this to a seperate file
+// Load environment variables from the .env file
+Env.Load();
+// Configure Cloudinary using environment variables
+var cloudinarySection = builder.Configuration.GetSection("CloudinarySettings");
+
+builder.Services.AddSingleton(cloudinary =>
+{
+    var cloudName = Environment.GetEnvironmentVariable(cloudinarySection["CloudName"]);
+    var apiKey = Environment.GetEnvironmentVariable(cloudinarySection["ApiKey"]);
+    var apiSecret = Environment.GetEnvironmentVariable(cloudinarySection["ApiSecret"]);
+
+    return new Cloudinary(new Account(cloudName, apiKey, apiSecret));
+});
+
+// Register DbContext with PostgreSQL
 builder.Services.AddDbContext<RealEstateContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Register repositories and services
-
+builder.Services.AddScoped<IClientRepository, ClientRepository>();
+builder.Services.AddScoped<IClientService, ClientService>();
+builder.Services.AddScoped<ISellerRepository, SellerRepository>();
+builder.Services.AddScoped<ISellerService, SellerService>();
 
 var app = builder.Build();
 
-// Migrate database on startup
-using (var scope = app.Services.CreateScope())
-{
-    var dbContext = scope.ServiceProvider.GetRequiredService<RealEstateContext>();
-    dbContext.Database.Migrate();
-}
-
-// Configure the HTTP request pipeline.
+// Enable Swagger and Swagger UI middleware
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
     app.UseDeveloperExceptionPage();
+    app.UseSwagger();  // Enable the Swagger JSON endpoint
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Real Estate API v1");
+        c.RoutePrefix = string.Empty; // Set Swagger UI as the root page
+    });
 }
 
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
 app.Run();
-

@@ -18,6 +18,8 @@ namespace RealEstateAPI.Models
 
         // Add DbSet for Person
         public DbSet<Person> People { get; set; }
+        public DbSet<Client> Clients { get; set; }
+        public DbSet<Seller> Sellers { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
