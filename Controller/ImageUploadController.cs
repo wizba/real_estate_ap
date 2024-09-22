@@ -15,7 +15,7 @@ public class ImageUploadController : ControllerBase
         _imageService = imageService;
     }
 
-    // POST: api/ImageUpload
+   
     [HttpPost]
     public async Task<IActionResult> UploadImage(IFormFile file, SourceType sourceType, long sourceId)
     {
@@ -49,7 +49,7 @@ public class ImageUploadController : ControllerBase
         return Ok(image);
     }
 
-    // GET: api/ImageUpload/source
+
     [HttpGet("source")]
     public async Task<IActionResult> GetImagesBySource(SourceType sourceType, long sourceId)
     {

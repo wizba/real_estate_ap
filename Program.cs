@@ -47,15 +47,21 @@ builder.Services.AddSingleton(cloudinary =>
     return new Cloudinary(new Account(cloudName, apiKey, apiSecret));
 });
 
+// Get connection string from environment variables
+var connectionString = Environment.GetEnvironmentVariable("DATABASE_CONNECTION_STRING");
+
 // Register DbContext with PostgreSQL
 builder.Services.AddDbContext<RealEstateContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(connectionString));
 
 // Register repositories and services
 builder.Services.AddScoped<IClientRepository, ClientRepository>();
 builder.Services.AddScoped<IClientService, ClientService>();
 builder.Services.AddScoped<ISellerRepository, SellerRepository>();
 builder.Services.AddScoped<ISellerService, SellerService>();
+
+builder.Services.AddScoped<IImageRepository, ImageRepository>();
+builder.Services.AddScoped<IImageService, ImageService>();
 
 var app = builder.Build();
 
@@ -71,7 +77,7 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
 app.Run();
