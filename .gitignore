@@ -1,0 +1,100 @@
+# Compiled object files
+*.o
+*.obj
+*.exe
+*.dll
+*.pdb
+*.class
+*.so
+*.dylib
+*.lib
+
+# Folders for build output
+bin/
+obj/
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+.vscode/
+.idea/
+
+# ASP.NET Scaffolding files
+ScaffoldingReadMe.txt
+
+# Rider specific files
+.idea/
+*.sln.iml
+
+# Logs
+*.log
+logs/
+
+# Generated files
+.g.dart
+
+# Ignore NuGet Packages folder
+packages/
+**/packages/*
+
+# Ignore npm and yarn packages
+node_modules/
+.yarn/
+
+# Ignore database
+*.mdf
+*.ldf
+*.ndf
+
+# Debug and Release Folders
+bin/
+obj/
+debug/
+release/
+
+# Visual Studio Code files
+.vscode/
+
+# Visual Studio for Mac
+.vscode/settings.json
+
+# Visual Studio user-specific files
+*.rsuser
+.vscode/
+.vscode/c_cpp_properties.json
+
+# Resharper files
+*.DotSettings.user
+
+# Generated EntityFramework Core Migrations files
+Migrations/
+
+# Windows image file caches
+Thumbs.db
+ehthumbs.db
+
+# macOS generated files
+.DS_Store
+
+# Python bytecode
+__pycache__/
+
+# Add any database backups
+*.bak
+*.sql
+*.json
+
+# Application settings and secrets
+appsettings.json
+appsettings.Development.json
+appsettings.*.json
+
+# Entity Framework migration snapshot (optional)
+RealEstateContextModelSnapshot.cs
+
+# Avoid committing compiled code from Blazor WebAssembly
+**/bin/Release/
+**/bin/Debug/
