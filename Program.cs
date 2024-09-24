@@ -68,12 +68,10 @@ var app = builder.Build();
 // Enable Swagger and Swagger UI middleware
 if (app.Environment.IsDevelopment())
 {
-    app.UseDeveloperExceptionPage();
-    app.UseSwagger();  // Enable the Swagger JSON endpoint
-    app.UseSwaggerUI(c =>
+    app.UseSwagger();
+    app.UseSwaggerUI(options =>
     {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Real Estate API v1");
-        c.RoutePrefix = string.Empty; // Set Swagger UI as the root page
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Real Estate API v1");
     });
 }
 

@@ -100,3 +100,5 @@ RealEstateContextModelSnapshot.cs
 **/bin/Debug/
 
 .env
+
+.vs/
