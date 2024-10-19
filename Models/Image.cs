@@ -1,16 +1,12 @@
-using System;
+using Constants.SourceType;
 
-namespace RealEstateAPI.Models
+public class Image
 {
-    public class Image
-    {
-        public long Id { get; set; }
-        public long PropertyListingId { get; set; }
-        public string Name { get; set; }
-        public string ImagePath { get; set; }
-        public DateTime CreatedAt { get; set; }
-        public DateTime UpdatedAt { get; set; }
-
-        public PropertyListing PropertyListing { get; set; }
-    }
+    public long Id { get; set; }
+    public string Name { get; set; }
+    public string ImagePath { get; set; }
+    public SourceType SourceType { get; set; }  // Enum for source type (Person, Property, etc.)
+    public long SourceId { get; set; }          // Foreign key to link the image with its source
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
 }

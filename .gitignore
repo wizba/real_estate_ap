@@ -98,3 +98,7 @@ RealEstateContextModelSnapshot.cs
 # Avoid committing compiled code from Blazor WebAssembly
 **/bin/Release/
 **/bin/Debug/
+
+.env
+
+.vs/
