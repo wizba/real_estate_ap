@@ -48,11 +48,16 @@ builder.Services.AddSingleton(cloudinary =>
 });
 
 // Get connection string from environment variables
-var connectionString = Environment.GetEnvironmentVariable("DATABASE_CONNECTION_STRING");
+var connectionString = Environment.GetEnvironmentVariable("REMOTE_DATABASE_CONNECTION");
 
-// Register DbContext with PostgreSQL
+if (string.IsNullOrEmpty(connectionString))
+{
+    throw new InvalidOperationException("Remote database connection string is not set in environment variables.");
+}
+
 builder.Services.AddDbContext<RealEstateContext>(options =>
     options.UseNpgsql(connectionString));
+
 
 // Register repositories and services
 builder.Services.AddScoped<IClientRepository, ClientRepository>();
