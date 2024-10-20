@@ -28,7 +28,7 @@ pipeline {
         
         stage('Publibat') {
             steps {
-                bat 'dotnet publibat -c Release -o ./publibat'
+                bat 'dotnet publish -c Release -o ./publish'
             }
         }
     }
