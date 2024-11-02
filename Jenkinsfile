@@ -60,22 +60,18 @@ pipeline {
         }
         
         stage('Package') {
-            steps {
-                script {
-                    bat '''
-                        powershell -NoProfile -ExecutionPolicy Bypass -Command "
-                        $ErrorActionPreference = 'Stop';
-                        if (Test-Path .\\publish) {
-                            Compress-Archive -Force -Path '.\\publish\\*' -DestinationPath '.\\publish.zip';
-                            Write-Host 'Package created successfully'
-                        } else {
-                            Write-Error 'Publish directory not found';
-                            exit 1
-                        }"
-                    '''
-                }
-            }
-        }   // Added missing closing brace here
+    steps {
+        bat '''
+            if exist publish (
+                powershell -Command "Compress-Archive -Force -Path 'publish\\*' -DestinationPath 'publish.zip'"
+                echo Package created successfully
+            ) else (
+                echo Publish directory not found
+                exit /b 1
+            )
+        '''
+    }
+} // Added missing closing brace here
         
         stage('Upload to S3') {
             steps {
