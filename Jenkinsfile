@@ -2,12 +2,15 @@ pipeline {
     agent any
     
     environment {
+        // AWS Credentials
+        AWS_CREDENTIALS = credentials('AWS_WILLIAM_ADMIN')
+        
+        // Environment Variables
         AWS_REGION = "${env.AWS_REGION_EAST}"
         INSTANCE_ID = "${env.EC2_INSTANCE_ID}"
         BUCKET_NAME = "${env.REAL_ESTATE_S3_BUCKET}"
         APP_PACKAGE = "${env.S3_KEY}"
-        APP_PATH = "/var/www/dotnet"    // Linux path for EC2
-        AWS_CREDS = credentials('AWS_WILLIAM_ADMIN')
+        APP_PATH = "/var/www/dotnet"
     }
 
     stages {
@@ -21,6 +24,7 @@ pipeline {
                         Bucket: ${BUCKET_NAME}
                         Package: ${APP_PACKAGE}
                         Deploy Path: ${APP_PATH}
+                        Using AWS Credentials: ${AWS_CREDENTIALS_USR}
                     """
                 }
             }
@@ -34,25 +38,25 @@ pipeline {
         
         stage('Restore') {
             steps {
-                bat 'dotnet restore'  // Windows command
+                bat 'dotnet restore'
             }
         }
         
         stage('Build') {
             steps {
-                bat 'dotnet build --configuration Release'  // Windows command
+                bat 'dotnet build --configuration Release'
             }
         }
         
         stage('Test') {
             steps {
-                bat 'dotnet test'  // Windows command
+                bat 'dotnet test'
             }
         }
         
         stage('Publish') {
             steps {
-                bat 'dotnet publish -c Release -o ./publish'  // Windows command
+                bat 'dotnet publish -c Release -o ./publish'
             }
         }
         
@@ -70,19 +74,19 @@ pipeline {
                     '''
                 }
             }
-    }   
+        }   
         
         stage('Upload to S3') {
             steps {
-                withAWS(credentials: 'aws-deploy-credentials', region: AWS_REGION) {
-                    bat "aws s3 cp publish.zip s3://${BUCKET_NAME}/${APP_PACKAGE}"  // Windows command
+                withAWS(credentials: 'AWS_WILLIAM_ADMIN', region: AWS_REGION) {
+                    bat "aws s3 cp publish.zip s3://${BUCKET_NAME}/${APP_PACKAGE}"
                 }
             }
         }
         
         stage('Deploy to EC2') {
             steps {
-                withAWS(credentials: 'aws-deploy-credentials', region: AWS_REGION) {
+                withAWS(credentials: 'AWS_WILLIAM_ADMIN', region: AWS_REGION) {
                     bat """
                         aws ssm send-command --instance-ids ${INSTANCE_ID} --document-name "AWS-RunShellScript" --parameters commands=[^
                             "mkdir -p /tmp/deploy",^
@@ -95,7 +99,7 @@ pipeline {
                             "sudo systemctl start dotnet-app",^
                             "rm -rf /tmp/deploy"^
                         ]
-                    """  // Windows bat command but sending Linux commands to EC2
+                    """
                 }
             }
         }
@@ -111,6 +115,12 @@ pipeline {
                 Package: ${APP_PACKAGE}
                 Deploy Path: ${APP_PATH}
             """
+        }
+        success {
+            echo 'Pipeline executed successfully!'
+        }
+        failure {
+            echo 'Pipeline execution failed!'
         }
     }
 }
