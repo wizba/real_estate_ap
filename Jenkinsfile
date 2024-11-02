@@ -110,39 +110,37 @@ stage('Upload to S3') {
 }
        stage('Deploy to EC2') {
             steps {
-                bat """
+                bat '''
                     aws ssm send-command ^
                     --region %AWS_REGION% ^
                     --instance-ids %INSTANCE_ID% ^
                     --document-name "AWS-RunShellScript" ^
-                    --comment "Deploying application" ^
-                    --parameters commands="[ \\"mkdir -p /tmp/deploy\\", \\"aws s3 cp s3://%BUCKET_NAME%/%APP_PACKAGE% /tmp/deploy/%APP_PACKAGE%\\", \\"sudo systemctl stop dotnet-app\\", \\"sudo rm -rf %APP_PATH%/*\\", \\"cd /tmp/deploy && unzip -o %APP_PACKAGE%\\", \\"sudo cp -r /tmp/deploy/publish/* %APP_PATH%/\\", \\"sudo chown -R ec2-user:ec2-user %APP_PATH%\\", \\"sudo systemctl start dotnet-app\\", \\"rm -rf /tmp/deploy\\"]"
-                """
+                    --parameters "{\"commands\":[\"mkdir -p /tmp/deploy\",\"aws s3 cp s3://%BUCKET_NAME%/%APP_PACKAGE% /tmp/deploy/\",\"sudo systemctl stop dotnet-app\",\"sudo rm -rf %APP_PATH%/*\",\"cd /tmp/deploy && unzip -o %APP_PACKAGE%\",\"sudo cp -r /tmp/deploy/publish/* %APP_PATH%/\",\"sudo chown -R ec2-user:ec2-user %APP_PATH%/\",\"sudo systemctl start dotnet-app\",\"rm -rf /tmp/deploy\"]}"
+                '''
             }
         }
-        
-        stage('Health Check') {
-            steps {
-                sleep(30)
-                script {
-                    def result = bat(
-                        script: """
-                            aws ssm send-command ^
-                            --region %AWS_REGION% ^
-                            --instance-ids %INSTANCE_ID% ^
-                            --document-name "AWS-RunShellScript" ^
-                            --comment "Health check" ^
-                            --parameters commands=["systemctl is-active dotnet-app"]
-                        """,
-                        returnStatus: true
-                    )
-                    
-                    if (result != 0) {
-                        error "Health check failed: Service is not active"
-                    }
-                }
+
+stage('Health Check') {
+    steps {
+        sleep(30)
+        script {
+            def result = bat(
+                script: '''
+                    aws ssm send-command ^
+                    --region %AWS_REGION% ^
+                    --instance-ids %INSTANCE_ID% ^
+                    --document-name "AWS-RunShellScript" ^
+                    --parameters "{\"commands\":[\"systemctl is-active dotnet-app\"]}"
+                ''',
+                returnStatus: true
+            )
+            
+            if (result != 0) {
+                error "Health check failed: Service is not active"
             }
         }
+    }
+}
     }
 
     post {
