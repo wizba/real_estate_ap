@@ -68,27 +68,46 @@ pipeline {
         }
         
         stage('Package') {
-            steps {
-                bat '''
-                    if not exist publish (
-                        echo Publish directory not found
-                        exit /b 1
-                    )
-                    if exist publish.zip del publish.zip
-                    powershell -Command "Compress-Archive -Force -Path 'publish\\*' -DestinationPath 'publish.zip'"
-                '''
-            }
-        }
-        
-        stage('Upload to S3') {
-            steps {
-                bat """
-                    aws s3 cp publish.zip s3://%BUCKET_NAME%/%APP_PACKAGE% ^
-                    --region %AWS_REGION%
-                """
-            }
-        }
-        
+    steps {
+        bat '''
+            echo "Current directory:"
+            cd
+            echo "Directory contents:"
+            dir
+            
+            if not exist publish (
+                echo "Error: Publish directory not found"
+                exit /b 1
+            )
+            
+            echo "Publish directory contents:"
+            dir publish
+            
+            if exist publish.zip del publish.zip
+            powershell -Command "Compress-Archive -Force -Path 'publish\\*' -DestinationPath 'publish.zip'"
+            
+            echo "Checking if zip was created:"
+            dir publish.zip
+        '''
+    }
+}
+
+stage('Upload to S3') {
+    steps {
+        bat '''
+            echo "Verifying zip file exists:"
+            dir publish.zip
+            
+            if not exist publish.zip (
+                echo "Error: publish.zip not found"
+                exit /b 1
+            )
+            
+            aws s3 cp publish.zip s3://%BUCKET_NAME%/%APP_PACKAGE% ^
+            --region %AWS_REGION%
+        '''
+    }
+}
         stage('Deploy to EC2') {
             steps {
                 bat """
