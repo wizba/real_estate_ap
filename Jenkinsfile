@@ -2,9 +2,9 @@ pipeline {
     agent any
     
     environment {
-        AWS_REGION = "${env.AWS_DEFAULT_REGION}"
+        AWS_REGION = "${env.AWS_REGION }"
         INSTANCE_ID = "${env.EC2_INSTANCE_ID}"
-        BUCKET_NAME = "${env.S3_BUCKET}"
+        BUCKET_NAME = "${env.REAL_ESTATE_S3_BUCKET}"
         APP_PACKAGE = "${env.S3_KEY}"
         APP_PATH = "/var/www/dotnet"    // Linux path for EC2
         AWS_CREDS = credentials('AWS_WILLIAM_ADMIN')
