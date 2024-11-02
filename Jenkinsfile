@@ -6,9 +6,8 @@ pipeline {
     }
     
     environment {
-        // AWS Credentials - Using Jenkins credentials
-        AWS_ACCESS_KEY_ID = credentials('AWS_WILLIAM_ADMIN').AccessKeyId
-        AWS_SECRET_ACCESS_KEY = credentials('AWS_WILLIAM_ADMIN').SecretAccessKey
+        // AWS Credentials - Single credential binding
+        AWS_ACCESS = credentials('AWS_WILLIAM_ADMIN')
         
         // Environment Variables
         AWS_REGION = "${env.AWS_REGION_EAST}"
@@ -16,9 +15,6 @@ pipeline {
         BUCKET_NAME = "${env.REAL_ESTATE_S3_BUCKET}"
         APP_PACKAGE = "${env.S3_KEY}"
         APP_PATH = "/var/www/dotnet"
-        
-        // Ensure AWS CLI uses these credentials
-        AWS_DEFAULT_REGION = "${env.AWS_REGION_EAST}"
     }
 
     stages {
@@ -37,15 +33,6 @@ pipeline {
                     if (!APP_PACKAGE?.trim()) {
                         error "APP_PACKAGE is not set"
                     }
-                    
-                    echo """
-                        Using Configuration:
-                        AWS Region: ${AWS_REGION}
-                        Instance ID: ${INSTANCE_ID}
-                        Bucket: ${BUCKET_NAME}
-                        Package: ${APP_PACKAGE}
-                        Deploy Path: ${APP_PATH}
-                    """
                 }
             }
         }
@@ -95,13 +82,16 @@ pipeline {
         
         stage('Upload to S3') {
             steps {
-                bat "aws s3 cp publish.zip s3://%BUCKET_NAME%/%APP_PACKAGE%"
+                bat """
+                    aws s3 cp publish.zip s3://%BUCKET_NAME%/%APP_PACKAGE% ^
+                    --region %AWS_REGION%
+                """
             }
         }
         
         stage('Deploy to EC2') {
             steps {
-                bat '''
+                bat """
                     aws ssm send-command ^
                     --region %AWS_REGION% ^
                     --instance-ids %INSTANCE_ID% ^
@@ -115,9 +105,8 @@ pipeline {
                                         "sudo cp -r /tmp/deploy/publish/* %APP_PATH%/", ^
                                         "sudo chown -R ec2-user:ec2-user %APP_PATH%", ^
                                         "sudo systemctl start dotnet-app", ^
-                                        "rm -rf /tmp/deploy"] ^
-                    --output text
-                '''
+                                        "rm -rf /tmp/deploy"]
+                """
             }
         }
         
@@ -126,15 +115,14 @@ pipeline {
                 sleep(30)
                 script {
                     def result = bat(
-                        script: '''
+                        script: """
                             aws ssm send-command ^
                             --region %AWS_REGION% ^
                             --instance-ids %INSTANCE_ID% ^
                             --document-name "AWS-RunShellScript" ^
                             --comment "Health check" ^
-                            --parameters commands=["systemctl is-active dotnet-app"] ^
-                            --output text
-                        ''',
+                            --parameters commands=["systemctl is-active dotnet-app"]
+                        """,
                         returnStatus: true
                     )
                     
@@ -148,14 +136,7 @@ pipeline {
 
     post {
         always {
-            echo """
-                Pipeline completed with following configurations:
-                AWS Region: ${AWS_REGION}
-                Instance ID: ${INSTANCE_ID}
-                Bucket: ${BUCKET_NAME}
-                Package: ${APP_PACKAGE}
-                Deploy Path: ${APP_PATH}
-            """
+            cleanWs()
         }
         success {
             echo 'Pipeline executed successfully!'
