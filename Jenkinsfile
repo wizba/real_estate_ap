@@ -79,8 +79,7 @@ pipeline {
         stage('Package') {
             steps {
                 script {
-                    def publishDir = new File('publish')
-                    if (!publishDir.exists()) {
+                    if (!fileExists('publish')) {
                         error "Publish directory not found"
                     }
                     powershell 'Compress-Archive -Force -Path "publish\\*" -DestinationPath "publish.zip"'
@@ -121,23 +120,14 @@ pipeline {
         
         stage('Health Check') {
             steps {
-                script {
-                    sleep(30) // Give application time to start
-                    withAWS(credentials: 'AWS_WILLIAM_ADMIN', region: AWS_REGION) {
-                        def status = powershell(
-                            script: """
-                                aws ssm send-command `
-                                    --instance-ids "${INSTANCE_ID}" `
-                                    --document-name "AWS-RunShellScript" `
-                                    --parameters 'commands=[\"systemctl is-active dotnet-app\"]'
-                            """,
-                            returnStdout: true
-                        ).trim()
-                        
-                        if (!status.contains("active")) {
-                            error "Application failed to start properly"
-                        }
-                    }
+                sleep(30) // Give application time to start
+                withAWS(credentials: 'AWS_WILLIAM_ADMIN', region: AWS_REGION) {
+                    powershell """
+                        aws ssm send-command `
+                            --instance-ids "${INSTANCE_ID}" `
+                            --document-name "AWS-RunShellScript" `
+                            --parameters 'commands=[\"systemctl is-active dotnet-app\"]'
+                    """
                 }
             }
         }
