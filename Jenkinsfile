@@ -74,7 +74,8 @@ pipeline {
                         }"
                     '''
                 }
-        }
+            }
+        }   // Added missing closing brace here
         
         stage('Upload to S3') {
             steps {
