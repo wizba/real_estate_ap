@@ -63,12 +63,14 @@ pipeline {
             steps {
                 script {
                     bat '''
-                        powershell -Command "if (Test-Path .\\publish) {
-                            Compress-Archive -Path .\\publish\\* -DestinationPath .\\publish.zip -Force
-                            Write-Host 'Package created successfully'
-                        } else {
-                            Write-Error 'Publish directory not found'
-                            exit 1
+                        powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+                        "$ErrorActionPreference = 'Stop'; ^
+                        if (Test-Path .\\publish) { ^
+                            Compress-Archive -Force -Path '.\\publish\\*' -DestinationPath '.\\publish.zip'; ^
+                            Write-Host 'Package created successfully' ^
+                        } else { ^
+                            Write-Error 'Publish directory not found'; ^
+                            exit 1 ^
                         }"
                     '''
                 }
