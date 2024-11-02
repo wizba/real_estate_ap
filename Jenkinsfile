@@ -108,18 +108,18 @@ stage('Upload to S3') {
         '''
     }
 }
-        stage('Deploy to EC2') {
-    steps {
-        bat """
-            aws ssm send-command ^
-            --region %AWS_REGION% ^
-            --instance-ids %INSTANCE_ID% ^
-            --document-name "AWS-RunShellScript" ^
-            --comment "Deploying application" ^
-            --parameters commands="[ \\"mkdir -p /tmp/deploy\\", \\"aws s3 cp s3://%BUCKET_NAME%/%APP_PACKAGE% /tmp/deploy/\\", \\"sudo systemctl stop dotnet-app\\", \\"sudo rm -rf %APP_PATH%/*\\", \\"cd /tmp/deploy && unzip -o %APP_PACKAGE%\\", \\"sudo cp -r /tmp/deploy/publish/* %APP_PATH%/\\", \\"sudo chown -R ec2-user:ec2-user %APP_PATH%\\", \\"sudo systemctl start dotnet-app\\", \\"rm -rf /tmp/deploy\\"]"
-        """
-    }
-}
+       stage('Deploy to EC2') {
+            steps {
+                bat """
+                    aws ssm send-command ^
+                    --region %AWS_REGION% ^
+                    --instance-ids %INSTANCE_ID% ^
+                    --document-name "AWS-RunShellScript" ^
+                    --comment "Deploying application" ^
+                    --parameters commands="[ \\"mkdir -p /tmp/deploy\\", \\"aws s3 cp s3://%BUCKET_NAME%/%APP_PACKAGE% /tmp/deploy/%APP_PACKAGE%\\", \\"sudo systemctl stop dotnet-app\\", \\"sudo rm -rf %APP_PATH%/*\\", \\"cd /tmp/deploy && unzip -o %APP_PACKAGE%\\", \\"sudo cp -r /tmp/deploy/publish/* %APP_PATH%/\\", \\"sudo chown -R ec2-user:ec2-user %APP_PATH%\\", \\"sudo systemctl start dotnet-app\\", \\"rm -rf /tmp/deploy\\"]"
+                """
+            }
+        }
         
         stage('Health Check') {
             steps {
