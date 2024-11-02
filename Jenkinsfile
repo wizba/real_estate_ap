@@ -95,25 +95,27 @@ pipeline {
            }
        }
        
-       stage('Deploy to EC2') {
-    steps {
-        withAWS(credentials: 'AWS_WILLIAM_ADMIN', region: AWS_REGION) {
-            powershell """
-                \$commands = @'
-                {
-                    "commands": [
-                        "mkdir -p /tmp/deploy && aws s3 cp s3://${BUCKET_NAME}/${APP_PACKAGE} /tmp/deploy/ && sudo systemctl stop dotnet-app && sudo rm -rf ${APP_PATH}/* && cd /tmp/deploy && unzip -o ${APP_PACKAGE} && sudo cp -r /tmp/deploy/publish/* ${APP_PATH}/ && sudo chown -R ec2-user:ec2-user ${APP_PATH} && sudo systemctl start dotnet-app && rm -rf /tmp/deploy"
-                    ]
+    stage('Deploy to EC2') {
+        steps {
+            withAWS(credentials: 'AWS_WILLIAM_ADMIN', region: env.AWS_REGION) {
+                script {
+                    def commands = """
+                        {
+                            "commands": [
+                                "mkdir -p /tmp/deploy && aws s3 cp s3://${env.BUCKET_NAME}/${env.APP_PACKAGE} /tmp/deploy/ && sudo systemctl stop dotnet-app && sudo rm -rf ${env.APP_PATH}/* && cd /tmp/deploy && unzip -o ${env.APP_PACKAGE} && sudo cp -r /tmp/deploy/publish/* ${env.APP_PATH}/ && sudo chown -R ec2-user:ec2-user ${env.APP_PATH} && sudo systemctl start dotnet-app && rm -rf /tmp/deploy"
+                            ]
+                        }
+                    """
+
+                    def result = sh(script: "aws ssm send-command --instance-ids \"${env.INSTANCE_ID}\" --document-name \"AWS-RunShellScript\" --parameters '$commands'", returnStatus: true)
+
+                    if (result != 0) {
+                        error "AWS SSM Send Command failed with exit code: $result"
+                    }
                 }
-'@
-                aws ssm send-command `
-                --instance-ids "${INSTANCE_ID}" `
-                --document-name "AWS-RunShellScript" `
-                --parameters \$commands
-            """
+            }
         }
     }
-}
        
        stage('Health Check') {
            steps {
