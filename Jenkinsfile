@@ -24,7 +24,6 @@ pipeline {
                         Bucket: ${BUCKET_NAME}
                         Package: ${APP_PACKAGE}
                         Deploy Path: ${APP_PATH}
-                        Using AWS Credentials: ${AWS_CREDENTIALS_USR}
                     """
                 }
             }
