@@ -2,7 +2,7 @@ pipeline {
     agent any
     
     environment {
-        AWS_REGION = "${env.AWS_REGION }"
+        AWS_REGION = "${env.AWS_REGION_EAST}"
         INSTANCE_ID = "${env.EC2_INSTANCE_ID}"
         BUCKET_NAME = "${env.REAL_ESTATE_S3_BUCKET}"
         APP_PACKAGE = "${env.S3_KEY}"
@@ -60,19 +60,17 @@ pipeline {
             steps {
                 script {
                     bat '''
-                        powershell -Command "
-                            if (Test-Path ./publish) {
-                                Compress-Archive -Path ./publish/* -DestinationPath ./publish.zip -Force
-                                Write-Host 'Package created successfully'
-                            } else {
-                                Write-Error 'Publish directory not found'
-                                exit 1
-                            }
-                        "
-                    '''  // Windows PowerShell command
+                        powershell -Command "if (Test-Path .\\publish) {
+                            Compress-Archive -Path .\\publish\\* -DestinationPath .\\publish.zip -Force
+                            Write-Host 'Package created successfully'
+                        } else {
+                            Write-Error 'Publish directory not found'
+                            exit 1
+                        }"
+                    '''
                 }
             }
-        }
+    }   
         
         stage('Upload to S3') {
             steps {
