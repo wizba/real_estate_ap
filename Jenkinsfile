@@ -1,153 +1,169 @@
 pipeline {
-   agent any
-   
-   options {
-       timeout(time: 1, unit: 'HOURS')
-   }
-   
-   environment {
-       // AWS Credentials
-       AWS_CREDENTIALS = credentials('AWS_WILLIAM_ADMIN')
-       
-       // Environment Variables
-       AWS_REGION = "${env.AWS_REGION_EAST}"
-       INSTANCE_ID = "${env.EC2_INSTANCE_ID}"
-       BUCKET_NAME = "${env.REAL_ESTATE_S3_BUCKET}"
-       APP_PACKAGE = "${env.S3_KEY}"
-       APP_PATH = "/var/www/dotnet"
-   }
+    agent any
+    
+    options {
+        timeout(time: 1, unit: 'HOURS')
+    }
+    
+    environment {
+        // AWS Credentials
+        AWS_CREDENTIALS = credentials('AWS_WILLIAM_ADMIN')
+        
+        // Environment Variables
+        AWS_REGION = "${env.AWS_REGION_EAST}"
+        INSTANCE_ID = "${env.EC2_INSTANCE_ID}"
+        BUCKET_NAME = "${env.REAL_ESTATE_S3_BUCKET}"
+        APP_PACKAGE = "${env.S3_KEY}"
+        APP_PATH = "/var/www/dotnet"
+    }
 
-   stages {
-       stage('Validate Environment') {
-           steps {
-               script {
-                   if (!AWS_REGION?.trim()) {
-                       error "AWS_REGION is not set"
-                   }
-                   if (!INSTANCE_ID?.trim()) {
-                       error "INSTANCE_ID is not set"
-                   }
-                   if (!BUCKET_NAME?.trim()) {
-                       error "BUCKET_NAME is not set"
-                   }
-                   if (!APP_PACKAGE?.trim()) {
-                       error "APP_PACKAGE is not set"
-                   }
-                   
-                   echo """
-                       Using Configuration:
-                       AWS Region: ${AWS_REGION}
-                       Instance ID: ${INSTANCE_ID}
-                       Bucket: ${BUCKET_NAME}
-                       Package: ${APP_PACKAGE}
-                       Deploy Path: ${APP_PATH}
-                   """
-               }
-           }
-       }
-
-       stage('Checkout') {
-           steps {
-               checkout scm
-           }
-       }
-       
-       stage('Restore') {
-           steps {
-               bat 'dotnet restore'
-           }
-       }
-       
-       stage('Build') {
-           steps {
-               bat 'dotnet build --configuration Release'
-           }
-       }
-       
-       stage('Test') {
-           steps {
-               bat 'dotnet test'
-           }
-       }
-       
-       stage('Publish') {
-           steps {
-               bat 'dotnet publish -c Release -o ./publish'
-           }
-       }
-       
-       stage('Package') {
-           steps {
-               script {
-                   if (!fileExists('publish')) {
-                       error "Publish directory not found"
-                   }
-                   powershell 'Compress-Archive -Force -Path "publish\\*" -DestinationPath "publish.zip"'
-               }
-           }
-       }
-       
-       stage('Upload to S3') {
-           steps {
-               withAWS(credentials: 'AWS_WILLIAM_ADMIN', region: AWS_REGION) {
-                   bat "aws s3 cp publish.zip s3://${BUCKET_NAME}/${APP_PACKAGE}"
-               }
-           }
-       }
-       
-    stage('Deploy to EC2') {
-        steps {
-            withAWS(credentials: 'AWS_WILLIAM_ADMIN', region: env.AWS_REGION) {
+    stages {
+        stage('Validate Environment') {
+            steps {
                 script {
-                    def commands = """
-                        {
-                            "commands": [
-                                "mkdir -p /tmp/deploy && aws s3 cp s3://${env.BUCKET_NAME}/${env.APP_PACKAGE} /tmp/deploy/ && sudo systemctl stop dotnet-app && sudo rm -rf ${env.APP_PATH}/* && cd /tmp/deploy && unzip -o ${env.APP_PACKAGE} && sudo cp -r /tmp/deploy/publish/* ${env.APP_PATH}/ && sudo chown -R ec2-user:ec2-user ${env.APP_PATH} && sudo systemctl start dotnet-app && rm -rf /tmp/deploy"
-                            ]
-                        }
+                    if (!AWS_REGION?.trim()) {
+                        error "AWS_REGION is not set"
+                    }
+                    if (!INSTANCE_ID?.trim()) {
+                        error "INSTANCE_ID is not set"
+                    }
+                    if (!BUCKET_NAME?.trim()) {
+                        error "BUCKET_NAME is not set"
+                    }
+                    if (!APP_PACKAGE?.trim()) {
+                        error "APP_PACKAGE is not set"
+                    }
+                    
+                    echo """
+                        Using Configuration:
+                        AWS Region: ${AWS_REGION}
+                        Instance ID: ${INSTANCE_ID}
+                        Bucket: ${BUCKET_NAME}
+                        Package: ${APP_PACKAGE}
+                        Deploy Path: ${APP_PATH}
                     """
+                }
+            }
+        }
 
-                    def result = sh(script: "aws ssm send-command --instance-ids \"${env.INSTANCE_ID}\" --document-name \"AWS-RunShellScript\" --parameters '$commands'", returnStatus: true)
-
-                    if (result != 0) {
-                        error "AWS SSM Send Command failed with exit code: $result"
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+        
+        stage('Restore') {
+            steps {
+                bat 'dotnet restore'
+            }
+        }
+        
+        stage('Build') {
+            steps {
+                bat 'dotnet build --configuration Release'
+            }
+        }
+        
+        stage('Test') {
+            steps {
+                bat 'dotnet test'
+            }
+        }
+        
+        stage('Publish') {
+            steps {
+                bat 'dotnet publish -c Release -o ./publish'
+            }
+        }
+        
+        stage('Package') {
+            steps {
+                bat '''
+                    if not exist publish (
+                        echo Publish directory not found
+                        exit /b 1
+                    )
+                    if exist publish.zip del publish.zip
+                    powershell -Command "Compress-Archive -Force -Path 'publish\\*' -DestinationPath 'publish.zip'"
+                '''
+            }
+        }
+        
+        stage('Upload to S3') {
+            steps {
+                withAWS(credentials: 'AWS_WILLIAM_ADMIN', region: AWS_REGION) {
+                    bat "aws s3 cp publish.zip s3://${BUCKET_NAME}/${APP_PACKAGE}"
+                }
+            }
+        }
+        
+        stage('Deploy to EC2') {
+            steps {
+                withAWS(credentials: 'AWS_WILLIAM_ADMIN', region: AWS_REGION) {
+                    script {
+                        def commands = [
+                            "mkdir -p /tmp/deploy",
+                            "aws s3 cp s3://${BUCKET_NAME}/${APP_PACKAGE} /tmp/deploy/",
+                            "sudo systemctl stop dotnet-app",
+                            "sudo rm -rf ${APP_PATH}/*",
+                            "cd /tmp/deploy && unzip -o ${APP_PACKAGE}",
+                            "sudo cp -r /tmp/deploy/publish/* ${APP_PATH}/",
+                            "sudo chown -R ec2-user:ec2-user ${APP_PATH}",
+                            "sudo systemctl start dotnet-app",
+                            "rm -rf /tmp/deploy"
+                        ]
+                        
+                        bat """
+                            aws ssm send-command ^
+                                --instance-ids "${INSTANCE_ID}" ^
+                                --document-name "AWS-RunShellScript" ^
+                                --parameters commands=${commands.collect{'"'+it+'"'}.toString()}
+                        """
+                    }
+                }
+            }
+        }
+        
+        stage('Health Check') {
+            steps {
+                sleep(30)
+                withAWS(credentials: 'AWS_WILLIAM_ADMIN', region: AWS_REGION) {
+                    script {
+                        def result = bat(
+                            script: """
+                                aws ssm send-command ^
+                                    --instance-ids "${INSTANCE_ID}" ^
+                                    --document-name "AWS-RunShellScript" ^
+                                    --parameters commands=["systemctl is-active dotnet-app"]
+                            """,
+                            returnStatus: true
+                        )
+                        
+                        if (result != 0) {
+                            error "Health check failed: Service is not active"
+                        }
                     }
                 }
             }
         }
     }
-       
-       stage('Health Check') {
-           steps {
-               sleep(30)
-               withAWS(credentials: 'AWS_WILLIAM_ADMIN', region: AWS_REGION) {
-                   powershell """
-                       aws ssm send-command \\
-                           --instance-ids "${INSTANCE_ID}" \\
-                           --document-name "AWS-RunShellScript" \\
-                           --parameters '{\"commands\":[\"systemctl is-active dotnet-app\"]}'
-                   """
-               }
-           }
-       }
-   }
 
-   post {
-       always {
-           echo """
-               Pipeline completed with following configurations:
-               AWS Region: ${AWS_REGION}
-               Instance ID: ${INSTANCE_ID}
-               Bucket: ${BUCKET_NAME}
-               Package: ${APP_PACKAGE}
-               Deploy Path: ${APP_PATH}
-           """
-       }
-       success {
-           echo 'Pipeline executed successfully!'
-       }
-       failure {
-           echo 'Pipeline execution failed!'
-       }
-   }
+    post {
+        always {
+            echo """
+                Pipeline completed with following configurations:
+                AWS Region: ${AWS_REGION}
+                Instance ID: ${INSTANCE_ID}
+                Bucket: ${BUCKET_NAME}
+                Package: ${APP_PACKAGE}
+                Deploy Path: ${APP_PATH}
+            """
+        }
+        success {
+            echo 'Pipeline executed successfully!'
+        }
+        failure {
+            echo 'Pipeline execution failed!'
+        }
+    }
 }
