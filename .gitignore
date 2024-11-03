@@ -88,9 +88,9 @@ __pycache__/
 *.json
 
 # Application settings and secrets
-appsettings.json
+# appsettings.json
 appsettings.Development.json
-appsettings.*.json
+#appsettings.*.json
 
 # Entity Framework migration snapshot (optional)
 RealEstateContextModelSnapshot.cs
