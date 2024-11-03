@@ -71,16 +71,21 @@ builder.Services.AddScoped<IImageService, ImageService>();
 var app = builder.Build();
 
 // Enable Swagger and Swagger UI middleware
-if (app.Environment.IsDevelopment())
-{
+//if (app.Environment.IsDevelopment())
+//{
     app.UseSwagger();
     app.UseSwaggerUI(options =>
     {
         options.SwaggerEndpoint("/swagger/v1/swagger.json", "Real Estate API v1");
     });
-}
+//}
 
 // app.UseHttpsRedirection();
+app.UseCors(builder => builder
+    .AllowAnyOrigin()
+    .AllowAnyMethod()
+    .AllowAnyHeader());
+
 app.UseAuthorization();
 app.MapControllers();
 app.Run();
