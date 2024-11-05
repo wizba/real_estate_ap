@@ -5,11 +5,49 @@ using RealEstateAPI.Services;
 using Microsoft.EntityFrameworkCore;
 using DotNetEnv;
 using CloudinaryDotNet;
+using Amazon.SimpleSystemsManagement;
+using Amazon.SimpleSystemsManagement.Model;
+using Amazon.Extensions.NETCore.Setup;
 
 var builder = WebApplication.CreateBuilder(args);
 
+//Config AWS
+builder.Services.AddDefaultAWSOptions(new AWSOptions
+{
+    Region = Amazon.RegionEndpoint.USEast1
+});
+
+builder.Services.AddAWSService<IAmazonSimpleSystemsManagement>();
+
 // Add services to the container
 builder.Services.AddControllers();
+
+// Function to get SSM parameter
+async Task<string> GetSsmParameter(IAmazonSimpleSystemsManagement ssmClient, string paramName)
+{
+    try
+    {
+        var response = await ssmClient.GetParameterAsync(new GetParameterRequest
+        {
+            Name = paramName,
+            WithDecryption = true
+        });
+        return response.Parameter.Value;
+    }
+    catch (Exception ex)
+    {
+        throw new InvalidOperationException($"Failed to get parameter {paramName}: {ex.Message}");
+    }
+}
+
+// Get SSM client
+var ssmClient = builder.Services.BuildServiceProvider()
+    .GetRequiredService<IAmazonSimpleSystemsManagement>();
+
+// Fetch Cloudinary configuration from SSM
+var cloudName = await GetSsmParameter(ssmClient, "/RealEstate/Cloudinary/CloudName");
+var apiKey = await GetSsmParameter(ssmClient, "/RealEstate/Cloudinary/ApiKey");
+var apiSecret = await GetSsmParameter(ssmClient, "/RealEstate/Cloudinary/ApiSecret");
 
 // Configure Swagger for API documentation
 builder.Services.AddEndpointsApiExplorer(); // Enables API explorer for Swagger
@@ -36,23 +74,27 @@ builder.Services.AddSwaggerGen(c =>
 // Load environment variables from the .env file
 Env.Load();
 // Configure Cloudinary using environment variables
-var cloudinarySection = builder.Configuration.GetSection("CloudinarySettings");
+//var cloudinarySection = builder.Configuration.GetSection("CloudinarySettings");
 
+//builder.Services.AddSingleton(cloudinary =>
+//{
+//    var cloudName = Environment.GetEnvironmentVariable(cloudinarySection["CloudName"]);
+//    var apiKey = Environment.GetEnvironmentVariable(cloudinarySection["ApiKey"]);
+//    var apiSecret = Environment.GetEnvironmentVariable(cloudinarySection["ApiSecret"]);
+
+//    return new Cloudinary(new Account(cloudName, apiKey, apiSecret));
+//});
+
+// Configure Cloudinary
 builder.Services.AddSingleton(cloudinary =>
-{
-    var cloudName = Environment.GetEnvironmentVariable(cloudinarySection["CloudName"]);
-    var apiKey = Environment.GetEnvironmentVariable(cloudinarySection["ApiKey"]);
-    var apiSecret = Environment.GetEnvironmentVariable(cloudinarySection["ApiSecret"]);
+    new Cloudinary(new Account(cloudName, apiKey, apiSecret))
+);
 
-    return new Cloudinary(new Account(cloudName, apiKey, apiSecret));
-});
-
-// Get connection string from environment variables
-var connectionString = Environment.GetEnvironmentVariable("REMOTE_DATABASE_CONNECTION");
-
+// Get database connection from SSM
+var connectionString = await GetSsmParameter(ssmClient, "/RealEstate/Database/RemoteConnection");
 if (string.IsNullOrEmpty(connectionString))
 {
-    throw new InvalidOperationException("Remote database connection string is not set in environment variables.");
+    throw new InvalidOperationException("Database connection string not found in SSM.");
 }
 
 builder.Services.AddDbContext<RealEstateContext>(options =>
