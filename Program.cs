@@ -8,6 +8,10 @@ using CloudinaryDotNet;
 using Amazon.SimpleSystemsManagement;
 using Amazon.SimpleSystemsManagement.Model;
 using Amazon.Extensions.NETCore.Setup;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using real_estate_api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -48,7 +52,23 @@ var ssmClient = builder.Services.BuildServiceProvider()
 var cloudName = await GetSsmParameter(ssmClient, "/RealEstate/Cloudinary/CloudName");
 var apiKey = await GetSsmParameter(ssmClient, "/RealEstate/Cloudinary/ApiKey");
 var apiSecret = await GetSsmParameter(ssmClient, "/RealEstate/Cloudinary/ApiSecret");
-
+var jwtSecretKey = "MyTestSecret";
+// Configure JWT Authentication
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey)),
+            ValidateIssuer = true,
+            ValidIssuer = "RealEstateAPI",
+            ValidateAudience = true,
+            ValidAudience = "RealEstateClients",
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero
+        };
+    });
 // Configure Swagger for API documentation
 builder.Services.AddEndpointsApiExplorer(); // Enables API explorer for Swagger
 builder.Services.AddSwaggerGen(c =>
@@ -103,12 +123,21 @@ builder.Services.AddDbContext<RealEstateContext>(options =>
 
 // Register repositories and services
 builder.Services.AddScoped<IClientRepository, ClientRepository>();
-builder.Services.AddScoped<IClientService, ClientService>();
+builder.Services.AddScoped<IUserService, ClientService>();
 builder.Services.AddScoped<ISellerRepository, SellerRepository>();
-builder.Services.AddScoped<ISellerService, SellerService>();
+builder.Services.AddScoped<IUserService, SellerService>();
 
 builder.Services.AddScoped<IImageRepository, ImageRepository>();
 builder.Services.AddScoped<IImageService, ImageService>();
+
+// Register JWT and User services
+builder.Services.AddSingleton<JwtAuthenticationService>(
+    new JwtAuthenticationService(
+        secretKey: jwtSecretKey,
+        issuer: "RealEstateAPI",
+        audience: "RealEstateClients"
+    )
+);
 
 var app = builder.Build();
 

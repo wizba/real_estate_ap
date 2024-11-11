@@ -20,7 +20,7 @@ namespace RealEstateAPI.Models
         public string SubType { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
-
+         
         public City City { get; set; }
         public Community Community { get; set; }
         public ICollection<PropertySalesHistory> SalesHistory { get; set; }
