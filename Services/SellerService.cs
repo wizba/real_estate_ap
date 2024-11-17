@@ -8,31 +8,31 @@ namespace RealEstateAPI.Services
 {
     public class SellerService : IUserService
     {
-        private readonly IClientRepository _clientRepository;
+        private readonly ISellerRepository _clientRepository;
 
-    public SellerService(IClientRepository clientRepository)
+        public SellerService(ISellerRepository clientRepository)
     {
         _clientRepository = clientRepository;
     }
 
-    public async Task<IEnumerable<Client>> GetAllUsersAsync()
+    public async Task<IEnumerable<Person>> GetAllUsersAsync()
     {
         return await _clientRepository.GetAllAsync();
     }
 
-    public async Task<Client> GetUserByIdAsync(long id)
+    public async Task<Person> GetUserByIdAsync(long id)
     {
         return await _clientRepository.GetByIdAsync(id);
     }
 
-    public async Task AddUserAsync(Client client)
+    public async Task AddUserAsync(Person client)
     {
-        await _clientRepository.AddAsync(client);
+        await _clientRepository.AddAsync((Seller)client);
     }
 
-    public async Task UpdateUserAsync(Client client)
+    public async Task UpdateUserAsync(Person client)
     {
-        await _clientRepository.UpdateAsync(client);
+        await _clientRepository.UpdateAsync((Seller)client);
     }
 
     public async Task DeleteUserAsync(long id)

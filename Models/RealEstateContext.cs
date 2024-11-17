@@ -34,7 +34,6 @@ namespace RealEstateAPI.Models
             // Optionally: Configure inheritance or roles for Person
             modelBuilder.Entity<Person>()
                 .HasDiscriminator<string>("Role")  // Use Role as the discriminator
-                .HasValue<Person>("Person")
                 .HasValue<Client>("Client")
                 .HasValue<Seller>("Seller");
 

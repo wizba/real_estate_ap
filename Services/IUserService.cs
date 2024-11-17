@@ -4,10 +4,10 @@ namespace real_estate_api.Services
 {
     public interface IUserService
     {
-        Task<IEnumerable<Client>> GetAllUsersAsync();
-        Task<Client> GetUserByIdAsync(long id);
-        Task AddUserAsync(Client client);
-        Task UpdateUserAsync(Client client);
+        Task<IEnumerable<Person>> GetAllUsersAsync();
+        Task<Person> GetUserByIdAsync(long id);
+        Task AddUserAsync(Person client);
+        Task UpdateUserAsync(Person client);
         Task DeleteUserAsync(long id);
     }
 }

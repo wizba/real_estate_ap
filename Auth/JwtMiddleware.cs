@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using real_estate_api.Auth.Authenitication;
 using real_estate_api.Config;
 using real_estate_api.Services;
 using System.IdentityModel.Tokens.Jwt;
@@ -18,7 +19,7 @@ namespace real_estate_api.Auth
             _appSettings = appSettings.Value;
         }
 
-        public async Task Invoke(HttpContext context, IUserService userService)
+        public async Task Invoke(HttpContext context, IUserAuth userService)
         {
             var token = context.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
 
@@ -29,7 +30,7 @@ namespace real_estate_api.Auth
         }
 
 
-        private async Task attachUserToContext(HttpContext context, IUserService userService, string token)
+        private async Task attachUserToContext(HttpContext context, IUserAuth userService, string token)
         {
             try
             {
@@ -49,7 +50,7 @@ namespace real_estate_api.Auth
                 var userId = int.Parse(jwtToken.Claims.First(x => x.Type == "id").Value);
 
                 //Attach user to context on successful JWT validation
-                context.Items["User"] = await userService.GetUserByIdAsync(userId);
+                context.Items["User"] = await userService.GetById(userId);
             }
             catch
             {

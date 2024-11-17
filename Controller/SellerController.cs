@@ -1,8 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
+using real_estate_api.Services;
+using real_estate_api.Shared;
 using RealEstateAPI.Models;
-using RealEstateAPI.Services;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace RealEstateAPI.Controllers
 {
@@ -10,9 +9,9 @@ namespace RealEstateAPI.Controllers
     [ApiController]
     public class SellerController : ControllerBase
     {
-        private readonly ISellerService _sellerService;
+        private readonly IUserService _sellerService;
 
-        public SellerController(ISellerService sellerService)
+        public SellerController(IUserService sellerService)
         {
             _sellerService = sellerService;
         }
@@ -20,14 +19,14 @@ namespace RealEstateAPI.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Seller>>> GetSellers()
         {
-            var sellers = await _sellerService.GetAllSellersAsync();
+            var sellers = await _sellerService.GetAllUsersAsync();
             return Ok(sellers);
         }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<Seller>> GetSeller(long id)
         {
-            var seller = await _sellerService.GetSellerByIdAsync(id);
+            var seller = await _sellerService.GetUserByIdAsync(id);
             if (seller == null)
             {
                 return NotFound();
@@ -38,7 +37,11 @@ namespace RealEstateAPI.Controllers
         [HttpPost]
         public async Task<ActionResult> CreateSeller(Seller seller)
         {
-            await _sellerService.AddSellerAsync(seller);
+           
+            // encrypt password
+            seller.Password = Protect.EncryptPassword(seller.Password);
+            
+            await _sellerService.AddUserAsync(seller);
             return CreatedAtAction(nameof(GetSeller), new { id = seller.Id }, seller);
         }
 
@@ -50,14 +53,14 @@ namespace RealEstateAPI.Controllers
                 return BadRequest();
             }
 
-            await _sellerService.UpdateSellerAsync(seller);
+            await _sellerService.UpdateUserAsync(seller);
             return NoContent();
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteSeller(long id)
         {
-            await _sellerService.DeleteSellerAsync(id);
+            await _sellerService.DeleteUserAsync(id);
             return NoContent();
         }
     }

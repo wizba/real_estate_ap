@@ -14,6 +14,9 @@ namespace RealEstateAPI.Models
         [Required(ErrorMessage = "last name is required")]
         public string LastName { get; set; }
 
+        [Required(ErrorMessage = "Password is required")]
+        public string Password { get; set; }
+
         [EmailAddress]
         [Required(ErrorMessage = "Email is required")]
         public string Email { get; set; }

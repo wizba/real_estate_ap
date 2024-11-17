@@ -37,6 +37,11 @@ namespace RealEstateAPI.Repositories
             return await _context.People.FindAsync(id);
         }
 
+        public async Task<Person> GetByUserNameAndPassword(String username)
+        {
+            return await _context.People.Where(p => p.Email == username).FirstOrDefaultAsync();
+        }
+
         public async Task AddAsync(Person person)
         {
             _context.People.Add(person);

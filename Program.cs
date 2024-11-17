@@ -12,6 +12,10 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using real_estate_api.Services;
+using real_estate_api.Auth;
+using real_estate_api.Auth.Authenitication;
+using real_estate_api.Config;
+using real_estate_api.ErrorHandling;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -87,6 +91,31 @@ builder.Services.AddSwaggerGen(c =>
         }
     });
 
+    // Add JWT Authentication to Swagger
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme. Example: 'Bearer {token}'",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+
     // You can add more customization here, e.g., XML comments for methods, authentication, etc.
 });
 
@@ -123,9 +152,14 @@ builder.Services.AddDbContext<RealEstateContext>(options =>
 
 // Register repositories and services
 builder.Services.AddScoped<IClientRepository, ClientRepository>();
-builder.Services.AddScoped<IUserService, ClientService>();
+builder.Services.AddScoped<IClientService, ClientService>();
 builder.Services.AddScoped<ISellerRepository, SellerRepository>();
 builder.Services.AddScoped<IUserService, SellerService>();
+builder.Services.AddScoped<PersonRepository>();
+
+//Auth
+builder.Services.Configure<AppSettings>(builder.Configuration.GetSection("AppSettings"));
+builder.Services.AddScoped<IUserAuth,UserAuth>();
 
 builder.Services.AddScoped<IImageRepository, ImageRepository>();
 builder.Services.AddScoped<IImageService, ImageService>();
@@ -139,12 +173,16 @@ builder.Services.AddSingleton<JwtAuthenticationService>(
     )
 );
 
+
 var app = builder.Build();
+app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
+
+
 
 // Enable Swagger and Swagger UI middleware
 //if (app.Environment.IsDevelopment())
 //{
-    app.UseSwagger();
+app.UseSwagger();
     app.UseSwaggerUI(options =>
     {
         options.SwaggerEndpoint("/swagger/v1/swagger.json", "Real Estate API v1");
@@ -158,5 +196,7 @@ app.UseCors(builder => builder
     .AllowAnyHeader());
 
 app.UseAuthorization();
+app.UseMiddleware<JwtMiddleware>();
+
 app.MapControllers();
 app.Run();

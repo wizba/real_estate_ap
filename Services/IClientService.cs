@@ -1,15 +1,13 @@
-using RealEstateAPI.Models;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+﻿using RealEstateAPI.Models;
 
-namespace RealEstateAPI.Services
+namespace real_estate_api.Services
 {
     public interface IClientService
     {
-        Task<IEnumerable<Client>> GetAllClientsAsync();
-        Task<Client> GetClientByIdAsync(long id);
-        Task AddClientAsync(Client client);
-        Task UpdateClientAsync(Client client);
-        Task DeleteClientAsync(long id);
+        Task<IEnumerable<Person>> GetAllUsersAsync();
+        Task<Person> GetUserByIdAsync(long id);
+        Task AddUserAsync(Person client);
+        Task UpdateUserAsync(Person client);
+        Task DeleteUserAsync(long id);
     }
 }
