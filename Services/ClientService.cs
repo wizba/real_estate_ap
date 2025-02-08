@@ -45,9 +45,6 @@ namespace RealEstateAPI.Services
                     throw new BadRequestException("Client cannot be null");
                 }
 
-                // Validate client properties
-                
-
                 // Check if user already exists
                 var existingClient = await _clientRepository.GetByIdAsync(client.Id);
                 if (existingClient != null)

@@ -1,4 +1,4 @@
-﻿namespace real_estate_api.NewFolder
+﻿namespace real_estate_api.DTO
 {
     public class PropertyDto
     {
